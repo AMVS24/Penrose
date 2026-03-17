@@ -1,0 +1,10 @@
+^D:\DEV\SEDS\BLACKHOLE\PENROSE\BUILD\CMAKEFILES\63759E6CC09A149B601627F3B76777F3\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/dev/seds/blackhole/Penrose -BD:/dev/seds/blackhole/Penrose/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/dev/seds/blackhole/Penrose/build/Penrose.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
