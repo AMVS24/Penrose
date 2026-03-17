@@ -13,6 +13,7 @@ find_package(glm CONFIG REQUIRED)
 # Add your source files here
 add_executable(Penrose src/main.cpp)
 
+target_include_directories(Penrose PRIVATE vendor)
 # Link the libraries to your executable
 target_link_libraries(Penrose PRIVATE
     glfw

@@ -6,13 +6,31 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform vec3 uCameraPos;
 
+uniform sampler2D skybox;       // The equirectangular texture sampler
+uniform mat4 uInvProjView;      // The inverse View-Projection matrix
+
+const float PI = 3.14159265359;
+
+vec2 DirectionToUV(vec3 dir) {
+    float u = 0.5 + atan(dir.x, dir.z) / (2.0 * PI);
+    float v = 0.5 - asin(dir.y) / PI;
+    return vec2(u, v);
+}
+
 void main() {
-    // Map UVs from [0, 1] to [-1, 1] and fix aspect ratio
-    vec2 uv = TexCoords * 2.0 - 1.0;
-    uv.x *= uResolution.x / uResolution.y;
+    // 1. Generate the initial ray direction from this pixel
+    // Start with NDC coordinates: x,y in [-1,1]
+    vec4 ndcPos = vec4(TexCoords.x * 2.0 - 1.0, TexCoords.y * 2.0 - 1.0, 1.0, 1.0);
+    // Un-project from NDC to World Space
+    vec4 worldPos = uInvProjView * ndcPos;
+    // The ray direction is the un-projected direction, normalized
+    vec3 worldDir = normalize(worldPos.xyz / worldPos.w);
 
-    // A simple color gradient pulsing with time to prove it works
-    vec3 color = vec3(uv.x * 0.5 + 0.5, uv.y * 0.5 + 0.5, abs(sin(uTime)));
+    vec2 skyUV = DirectionToUV(worldDir);
+    vec3 finalColor = texture(skybox, skyUV).rgb;
 
-    FragColor = vec4(color, 1.0);
+    // A small animation test to confirm uniforms still work
+    finalColor *= abs(sin(uTime * 0.2)) * 0.2 + 0.8;
+
+    FragColor = vec4(finalColor, 1.0);
 }
