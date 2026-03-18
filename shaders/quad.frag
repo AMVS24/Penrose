@@ -25,7 +25,7 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     //FIND u.w HERE
 
     for(int i = 0; i < 100; i++) {
-        if(length(ro.xyz-vec3(0.0, 0.0, -2.0)) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
+        if(length(ro.xyz-vec3(0.0, 0.0, 0.0)) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
             return vec3(1.0, 0.0, 0.0); // Hit the sphere, return red
         }
         // In a real raymarcher, you'd evaluate a distance function here
