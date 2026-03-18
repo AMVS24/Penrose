@@ -11,7 +11,12 @@ find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
 # Add your source files here
-add_executable(Penrose src/main.cpp)
+add_executable(Penrose 
+    src/main.cpp
+    src/render/Texture.cpp
+    src/render/Window.cpp
+    src/render/Renderer.cpp
+)
 
 target_include_directories(Penrose PRIVATE vendor)
 # Link the libraries to your executable
