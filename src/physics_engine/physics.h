@@ -1,6 +1,7 @@
 #pragma once
 #include "../Constants.h"
 #include <Eigen/Dense>
+#include <cmath>
 using namespace Eigen;
 //State(For RK4 integration)
 struct State{
@@ -19,6 +20,9 @@ struct State{
     State operator+(const State& other) const { return State(X + other.X, U + other.U); }
     State operator*(double scalar) const { return State(X * scalar, U * scalar); }
     // This defines what S+S' means and is needed cuz RK4 needs K1+K2+K3+K4 and this needs to be scaled by dt/6 
+    State operator+(const State& other) const { return State(X + other.X, U + other.U); }
+    State operator*(double scalar) const { return State(X * scalar, U * scalar); }
+    friend State operator*(double scalar, const State& s) { return s * scalar; }
 
 };
 
@@ -40,5 +44,5 @@ struct Light{
 };
 
 
-Vector4d find_acceleration(Vector4d position);
+Vector4d find_acceleration(State&);
 State Integrator(State initState);

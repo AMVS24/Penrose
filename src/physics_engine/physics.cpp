@@ -25,7 +25,7 @@ Matrix4d cart_to_sph_Jacobian(double r,double theta,double phi){
     return sph_to_cart_Jacobian(r,theta,phi).inverse();
 }
 
-State cart_to_sphere(State& cartState){
+State cart_to_sphere(const State& cartState){
     double t = cartState.X[0];
     double x = cartState.X[1];
     double y = cartState.X[2];
@@ -51,12 +51,63 @@ State sph_to_cart(State& cartState){
     return State(Vector4d(t, x,y,z), sph_to_cart_Jacobian(r,theta,phi)*cartState.U);
 }
 
-Vector4d find_acceleration(Vector4d position){
-    return Vector4d::Zero();
+
+Vector4d find_acceleration(const State& state){
     // Implement needed
+    double r = state.X[1];
+    double theta = state.X[2];
+
+    double vt = state.U[0];
+    double vr  = state.U[1];
+    double vtheta = state.U[2];
+    double vphi = state.U[3];
+    // TODO
+    // Replace all  sin cos with precomputes
+    // replace r-rs with metric component + 1e-8 for diviide by zero shit
+
+    // T(r) component(radial component)
+    double Tr_tt = rs * (r-rs)/(2.0*r*r*r); 
+    double Tr_rr = -rs/(2.0*r*(r-rs));
+    double Tr_thth = -(r-rs);
+    double Tr_phph = -(r-rs)*std::sin(theta)*std::sin(theta);
+    //polar component
+    double Tth_rth = 1/r;
+    double Tth_phph = -std::sin(theta)*std::cos(theta);
+    //azimuthal component 
+    double Tph_rph = 1/r;
+    double Tph_thph = 1/std::tan(theta) + 1e-8;
+    //Time-component
+    double Tt_tr = rs/(2*r*(r-rs)); 
+    // T(t) component(accelerationequations)
+    double at = -2*(Tt_tr)*vt*vr;
+    double ar = -(Tr_tt*vt*vt + Tr_rr*vr*vr + Tr_thth*vtheta*vtheta + Tr_phph*vphi*vphi);
+    double atheta = -(2*Tth_rth*vr*vtheta + Tth_phph*vphi*vphi);
+    double aphi = -(2*Tph_rph*vr*vphi + 2* Tph_thph*vtheta*vphi);
+
+    return Vector4d(at, ar, atheta, aphi);
+    
 }
 
-State Integrator(State initState){
-    return State();
-    // Implement needed
+State create_state_derivate(const State& s) {
+    State init;
+    init.X = s.U;
+    init.U = find_acceleration(s);
+    return init;
+}
+ 
+
+State Integrator(const State& s, double dt){
+
+//s = s_0 +kt 
+
+    State k1 = create_state_derivate(s);    
+    State k2 = create_state_derivate(s + k1 * (dt/2));
+    State k3 = create_state_derivate(s + k2 * (dt/2));
+    State k4 = create_state_derivate(s + k3 * dt);
+
+    State s_final = s + (dt/6.0 )*(k1 + 2.0*k2 + 2.0*k3 + k4);
+    
+
+
+    return s_final;
 }
