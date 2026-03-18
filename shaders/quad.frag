@@ -10,7 +10,7 @@ uniform sampler2D skybox;       // The equirectangular texture sampler
 uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
-const float dT = 0.1;
+const float dL = 0.1;
 
 struct ray {
     vec4 x;
@@ -18,24 +18,24 @@ struct ray {
 };
 
 mat4 sph_to_cart_Jacobian(float r, float theta, float phi){ 
-    return mat4(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
-        0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
-        0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
-    );
-}
-mat4 cart_to_sph_Jacobian(float r, float theta, float phi){
-    return inverse(mat4(
+    return transpose(mat4(
         1.0, 0.0, 0.0, 0.0,
         0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
         0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
         0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
     ));
 }
+mat4 cart_to_sph_Jacobian(float r, float theta, float phi){
+    return inverse(transpose(mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
+        0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
+        0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
+    )));
+}
 ray cart_to_sph(ray R) {
     vec3 p = R.x.yzw;
-    float r = length(p.xyz);
+    float r = length(p);
     float theta = acos(clamp(p.z/(r+1e-8), -1.0, 1.0)); // Avoid division by zero
     float phi = atan(p.y, p.x);
     return ray(vec4(R.x.x,r,theta,phi), cart_to_sph_Jacobian(r, theta, phi) * R.u);
@@ -73,19 +73,17 @@ vec3 raymarch(vec3 ro, vec3 rd) {
         /(1.0-(rs/Rp.x.y))
         ); //NULL CONSTRAINT
 
-    // expensive jacobians? replace this with direct cartesian metric?
-
     R = sph_to_cart(Rp);
 
     //converting cartesian to polar for u and x using jacobian
     
 
     for(int i = 0; i < 100; i++) {
-        if(length(R.x.yzw-vec3(0.0, 0.0, 0.0)) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
+        if(length(R.x.yzw) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
             return vec3(1.0, 0.0, 0.0); // Hit the sphere, return red
         }
         // In a real raymarcher, you'd evaluate a distance function here
-        R.x.yzw += R.u.yzw * dT; // Step size of 0.1 units
+        R.x.yzw += R.u.yzw * dL; // Step size of 0.1 units
     }
     vec2 skyUV = DirectionToUV(R.u.yzw);
     return texture(skybox, skyUV).rgb; // Return black for now
