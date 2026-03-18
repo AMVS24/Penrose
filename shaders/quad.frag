@@ -65,7 +65,13 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     //r-1
     //theta-2
     //phi-3
-    Rp.u[0] = Rp.u.r * sqrt((1/(1-rs/Rp.x[1]) + Rp.u[2] * Rp.u[2] + Rp.u.[3] * Rp.u[3] * sin(Rp.u[2]) * sin(Rp.u[2]))/(1-rs/Rp.x[1]));
+    Rp.u.x = sqrt(
+        (
+            ((Rp.u.y*Rp.u.y)/(1.0-(rs/Rp.x.y)))
+            +(Rp.x.y*Rp.x.y*Rp.u.z*Rp.u.z)
+            +(Rp.u.w*Rp.u.w*Rp.x.y*Rp.x.y*sin(Rp.x.z)*sin(Rp.x.z)))
+        /(1.0-(rs/Rp.x.y))
+        ); //NULL CONSTRAINT
 
     // expensive jacobians? replace this with direct cartesian metric?
 
