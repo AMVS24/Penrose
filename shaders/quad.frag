@@ -22,6 +22,8 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     vec4 u = vec4(rd,0.0);
     vec4 x = vec4(ro,0.0);
 
+    //FIND u.w HERE
+
     for(int i = 0; i < 100; i++) {
         if(length(ro.xyz-vec3(0.0, 0.0, -2.0)) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
             return vec3(1.0, 0.0, 0.0); // Hit the sphere, return red
