@@ -1,2 +1,2 @@
 #pragma once
-const float dt = 0.01f;
+const double dt = 0.01f;
