@@ -36,7 +36,7 @@ public:
         Yaw = -90.0f;
         Pitch = 0.0f;
         MovementSpeed = 2.5f;
-        RotationSpeed = 60.0f;
+        RotationSpeed = 10.0f;
         updateCameraVectors();
     }
 

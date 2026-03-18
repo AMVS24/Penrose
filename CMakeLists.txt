@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
 
 # Add your source files here
 add_executable(Penrose 
@@ -24,4 +25,5 @@ target_link_libraries(Penrose PRIVATE
     glfw
     glad::glad
     glm::glm
+    Eigen3::Eigen
 )
