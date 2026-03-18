@@ -57,6 +57,19 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     ray R = ray(vec4(0.0, ro), vec4(0.0, rd));
 
     //FIND u.w HERE
+    R.u = normalize(R.u);
+    float rs = 1; // uniform todo
+
+    ray Rp = cart_to_sph(R);
+    //t-0
+    //r-1
+    //theta-2
+    //phi-3
+    Rp.u[0] = Rp.u.r * sqrt((1/(1-rs/Rp.x[1]) + Rp.u[2] * Rp.u[2] + Rp.u.[3] * Rp.u[3] * sin(Rp.u[2]) * sin(Rp.u[2]))/(1-rs/Rp.x[1]));
+
+    // expensive jacobians? replace this with direct cartesian metric?
+
+    R = sph_to_cart(Rp);
 
     //converting cartesian to polar for u and x using jacobian
     
