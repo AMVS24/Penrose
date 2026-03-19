@@ -11,7 +11,7 @@ uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
 const float dL = 0.01;
-const float rs = 1.0;
+const float rs = 0.25;
 
 struct ray {
     vec4 x;
@@ -19,20 +19,20 @@ struct ray {
 };
 
 mat4 sph_to_cart_Jacobian(float r, float theta, float phi){ 
-    return transpose(mat4(
+    return mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
+        0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
+        0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
+    );
+}
+mat4 cart_to_sph_Jacobian(float r, float theta, float phi){
+    return inverse(mat4(
         1.0, 0.0, 0.0, 0.0,
         0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
         0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
         0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
     ));
-}
-mat4 cart_to_sph_Jacobian(float r, float theta, float phi){
-    return inverse(transpose(mat4(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta),
-        0.0, r*cos(theta)*cos(phi), r*cos(theta)*sin(phi), -r*sin(theta),
-        0.0, -r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 0.0
-    )));
 }
 ray cart_to_sph(ray R) {
     vec3 p = R.x.yzw;
@@ -50,7 +50,7 @@ ray sph_to_cart(ray R) {
 
 vec4 find_acceleration(ray R){
     float r = R.x[1];
-    float theta = R.x[2];
+    float theta = clamp(R.x[2], 1e-6, PI - 1e-6);;
 
     float vt    =R.u[0];
     float vr    =R.u[1];
@@ -70,7 +70,7 @@ vec4 find_acceleration(ray R){
     float Tth_phph = -sin(theta)*cos(theta);
     //azimuthal component 
     float Tph_rph = 1.0/r;
-    float Tph_thph = 1.0/tan(theta) + 1e-8;
+    float Tph_thph = 1.0/(tan(theta) + 1e-8);
     //Time-component
     float Tt_tr = rs/(2*r*(r-rs)); 
     // T(t) component(accelerationequations)
@@ -89,8 +89,8 @@ ray create_ray_derivative(ray R){
 
 ray integrate(ray R){
     ray k1 = create_ray_derivative(R);    
-    ray k2 = create_ray_derivative(ray(R.x + (k1.x * (dL/2)),R.u + (k1.u * (dL/2))));
-    ray k3 = create_ray_derivative(ray(R.x + (k2.x * (dL/2)),R.u + (k2.u * (dL/2))));
+    ray k2 = create_ray_derivative(ray(R.x + (k1.x * (dL/2.0)),R.u + (k1.u * (dL/2.0))));
+    ray k3 = create_ray_derivative(ray(R.x + (k2.x * (dL/2.0)),R.u + (k2.u * (dL/2.0))));
     ray k4 = create_ray_derivative(ray(R.x + (k3.x * dL),R.u + (k3.u * dL)));
 
     ray s_final = ray(R.x + (dL/6.0 )*(k1.x + 2.0*k2.x + 2.0*k3.x + k4.x),R.u + (dL/6.0 )*(k1.u + 2.0*k2.u + 2.0*k3.u + k4.u));
@@ -128,17 +128,31 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     //converting cartesian to polar for u and x using jacobian
     
 
-    for(int i = 0; i < 300; i++) {
-        // if(length(Rp.x[1]) < rs) { // A simple sphere at (0,0,5) with radius 0.5
-        //     return vec3(0.0, 0.0, 0.0); // Hit the sphere, return red
-        // }
+    for(int i = 0; i < 400; i++) {
+        if(length(Rp.x[1]) < rs*1.1) { // A simple sphere at (0,0,5) with radius 0.5
+            return vec3(0.0, 0.0, 0.0); // Hit the sphere, return red
+        }
+        if(Rp.x.y > 20.0) {
+            break; 
+        }
         ray der = integrate(Rp);
         Rp.u = der.u;
         Rp.x = der.x;
+
+        // POLE CROSSING FIX: Keep theta strictly between 0 and PI
+        if (Rp.x.z < 0.0) {
+            Rp.x.z = -Rp.x.z;           // Bounce theta back to positive
+            Rp.x.w += PI;               // Rotate to the other side of the pole
+            Rp.u.z = -Rp.u.z;           // Reverse theta velocity
+        } else if (Rp.x.z > PI) {
+            Rp.x.z = 2.0 * PI - Rp.x.z; // Bounce back from PI
+            Rp.x.w += PI;               // Rotate to the other side of the pole
+            Rp.u.z = -Rp.u.z;           // Reverse theta velocity
+        }
     }
     R = sph_to_cart(Rp);
 
-    vec2 skyUV = DirectionToUV(R.u.yzw);
+    vec2 skyUV = DirectionToUV(normalize(R.u.yzw));
     return texture(skybox, skyUV).rgb; // Return black for now
 }
 
@@ -154,7 +168,7 @@ void main() {
     vec3 finalColor = raymarch(uCameraPos, worldDir);
 
     // A small animation test to confirm uniforms still work
-    finalColor *= abs(sin(uTime * 0.2)) * 0.2 + 0.8;
+    // finalColor *= abs(sin(uTime * 0.2)) * 0.2 + 0.8;
 
     FragColor = vec4(finalColor, 1.0);
 }

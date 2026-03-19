@@ -19,7 +19,7 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+Camera camera(glm::vec3(0.5f, 0.5f, 0.5f));
 
 float deltaTime = 0.0f; 
 float lastFrame = 0.0f; 
