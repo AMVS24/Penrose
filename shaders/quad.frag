@@ -10,7 +10,8 @@ uniform sampler2D skybox;       // The equirectangular texture sampler
 uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
-const float dL = 0.1;
+const float dL = 0.01;
+const float rs = 1.0;
 
 struct ray {
     vec4 x;
@@ -47,6 +48,56 @@ ray sph_to_cart(ray R) {
     return ray(vec4(R.x.x, r*sin(theta)*cos(phi), r*sin(theta)*sin(phi), r*cos(theta)), sph_to_cart_Jacobian(r, theta, phi) * R.u);
 }
 
+vec4 find_acceleration(ray R){
+    float r = R.x[1];
+    float theta = R.x[2];
+
+    float vt    =R.u[0];
+    float vr    =R.u[1];
+    float vtheta=R.u[2];
+    float vphi  =R.u[3];
+    // TODO
+    // Replace all  sin cos with precomputes
+    // replace r-rs with metric component + 1e-8 for diviide by zero shit
+
+    // T(r) component(radial component)
+    float Tr_tt = rs * (r-rs)/(2.0*r*r*r); 
+    float Tr_rr = -rs/(2.0*r*(r-rs));
+    float Tr_thth = -(r-rs);
+    float Tr_phph = -(r-rs)*sin(theta)*sin(theta);
+    //polar component
+    float Tth_rth = 1.0/r;
+    float Tth_phph = -sin(theta)*cos(theta);
+    //azimuthal component 
+    float Tph_rph = 1.0/r;
+    float Tph_thph = 1.0/tan(theta) + 1e-8;
+    //Time-component
+    float Tt_tr = rs/(2*r*(r-rs)); 
+    // T(t) component(accelerationequations)
+    float at = -2*(Tt_tr)*vt*vr;
+    float ar = -(Tr_tt*vt*vt + Tr_rr*vr*vr + Tr_thth*vtheta*vtheta + Tr_phph*vphi*vphi);
+    float atheta = -(2*Tth_rth*vr*vtheta + Tth_phph*vphi*vphi);
+    float aphi = -(2*Tph_rph*vr*vphi + 2* Tph_thph*vtheta*vphi);
+
+    return vec4(at, ar, atheta, aphi);
+}
+
+ray create_ray_derivative(ray R){
+    ray res=ray(vec4(R.u),find_acceleration(R));
+    return res;
+}
+
+ray integrate(ray R){
+    ray k1 = create_ray_derivative(R);    
+    ray k2 = create_ray_derivative(ray(R.x + (k1.x * (dL/2)),R.u + (k1.u * (dL/2))));
+    ray k3 = create_ray_derivative(ray(R.x + (k2.x * (dL/2)),R.u + (k2.u * (dL/2))));
+    ray k4 = create_ray_derivative(ray(R.x + (k3.x * dL),R.u + (k3.u * dL)));
+
+    ray s_final = ray(R.x + (dL/6.0 )*(k1.x + 2.0*k2.x + 2.0*k3.x + k4.x),R.u + (dL/6.0 )*(k1.u + 2.0*k2.u + 2.0*k3.u + k4.u));
+
+    return s_final;    
+}
+
 vec2 DirectionToUV(vec3 dir) {
     float u = 0.5 + atan(dir.x, dir.z) / (2.0 * PI);
     float v = 0.5 - asin(dir.y) / PI;
@@ -58,7 +109,6 @@ vec3 raymarch(vec3 ro, vec3 rd) {
 
     //FIND u.w HERE
     R.u = normalize(R.u);
-    float rs = 1; // uniform todo
 
     ray Rp = cart_to_sph(R);
     //t-0
@@ -73,18 +123,21 @@ vec3 raymarch(vec3 ro, vec3 rd) {
         /(1.0-(rs/Rp.x.y))
         ); //NULL CONSTRAINT
 
-    R = sph_to_cart(Rp);
+    // R = sph_to_cart(Rp);
 
     //converting cartesian to polar for u and x using jacobian
     
 
-    for(int i = 0; i < 100; i++) {
-        if(length(R.x.yzw) < 0.5) { // A simple sphere at (0,0,5) with radius 0.5
-            return vec3(1.0, 0.0, 0.0); // Hit the sphere, return red
-        }
-        // In a real raymarcher, you'd evaluate a distance function here
-        R.x.yzw += R.u.yzw * dL; // Step size of 0.1 units
+    for(int i = 0; i < 300; i++) {
+        // if(length(Rp.x[1]) < rs) { // A simple sphere at (0,0,5) with radius 0.5
+        //     return vec3(0.0, 0.0, 0.0); // Hit the sphere, return red
+        // }
+        ray der = integrate(Rp);
+        Rp.u = der.u;
+        Rp.x = der.x;
     }
+    R = sph_to_cart(Rp);
+
     vec2 skyUV = DirectionToUV(R.u.yzw);
     return texture(skybox, skyUV).rgb; // Return black for now
 }
