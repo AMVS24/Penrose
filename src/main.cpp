@@ -54,14 +54,14 @@ int main() {
     // 4. Load the Shader Program & Textures
     Shader shader("../../shaders/quad.vert", "../../shaders/quad.frag");
 
-    unsigned int skyboxTexture = loadTexture("../../shaders/starfield.jpg");
+    unsigned int skyboxTexture = loadTexture("../../shaders/starss.jpg");
     if (skyboxTexture == 0) return -1; // Fail if image didn't load
 
     // 5. Setup the Full-Screen Quad Geometry
     Renderer renderer; // The constructor silently builds the VAO/VBO here!
     
     shader.use();
-    shader.setFloat("skybox", 0);
+    shader.setInt("skybox", 0);
 
     // 6. Main Render Loop
     while (!glfwWindowShouldClose(window)) {
