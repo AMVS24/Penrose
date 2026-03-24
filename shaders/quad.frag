@@ -165,7 +165,8 @@ vec3 raymarch(vec3 ro, vec3 rd) {
 void main() {
     // 1. Generate the initial ray u from this pixel
     // Start with NDC coordinates: x,y in [-1,1]
-    return texture(skybox, TexCoords).rgb;
+    FragColor = texture(skybox, TexCoords);
+    return;
     vec4 ndcPos = vec4(TexCoords.x * 2.0 - 1.0, TexCoords.y * 2.0 - 1.0, 1.0, 1.0);
     // Un-project from NDC to World Space
     vec4 worldPos = uInvProjView * ndcPos;
