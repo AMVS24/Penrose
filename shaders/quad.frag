@@ -11,7 +11,8 @@ uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
 const float dL = 0.01;
-const float rs = 0.25;
+const float rs = 0.0;
+const int N_STEPS = 1500;
 
 struct ray {
     vec4 x;
@@ -104,6 +105,7 @@ ray integrate(ray R){
 vec2 DirectionToUV(vec3 dir) {
     float u = 0.5 + atan(dir.x, dir.z) / (2.0 * PI);
     float v = 0.5 - asin(dir.y) / PI;
+    // float v = dir.y*0.5+0.5;
     return vec2(u, v);
 }
 
@@ -113,7 +115,7 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     //FIND u.w HERE
     R.u = normalize(R.u);
 
-    ray Rp = cart_to_sph(R);
+    /*ray Rp = cart_to_sph(R);
     //t-0
     //r-1
     //theta-2
@@ -131,7 +133,7 @@ vec3 raymarch(vec3 ro, vec3 rd) {
     //converting cartesian to polar for u and x using jacobian
     
 
-    for(int i = 0; i < 400; i++) {
+    for(int i = 0; i < N_STEPS; i++) {
         if(length(Rp.x[1]) < rs*1.1) { // A simple sphere at (0,0,5) with radius 0.5
             return vec3(0.0, 0.0, 0.0); // Hit the sphere, return red
         }
@@ -153,20 +155,22 @@ vec3 raymarch(vec3 ro, vec3 rd) {
             Rp.u.z = -Rp.u.z;           // Reverse theta velocity
         }
     }
-    R = sph_to_cart(Rp);
+    R = sph_to_cart(Rp);*/
 
     vec2 skyUV = DirectionToUV(normalize(R.u.yzw));
     return texture(skybox, skyUV).rgb; // Return black for now
+    // return vec3(skyUV,1.0).rgb; // Return black for now
 }
 
 void main() {
     // 1. Generate the initial ray u from this pixel
     // Start with NDC coordinates: x,y in [-1,1]
+    return texture(skybox, TexCoords).rgb;
     vec4 ndcPos = vec4(TexCoords.x * 2.0 - 1.0, TexCoords.y * 2.0 - 1.0, 1.0, 1.0);
     // Un-project from NDC to World Space
     vec4 worldPos = uInvProjView * ndcPos;
     // The ray u is the un-projected u, normalized
-    vec3 worldDir = normalize(worldPos.xyz / worldPos.w);
+    vec3 worldDir = normalize((worldPos.xyz / worldPos.w)-uCameraPos);
 
     vec3 finalColor = raymarch(uCameraPos, worldDir);
 
