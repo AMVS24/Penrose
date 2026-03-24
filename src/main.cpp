@@ -54,7 +54,7 @@ int main() {
     // 4. Load the Shader Program & Textures
     Shader shader("../../shaders/quad.vert", "../../shaders/quad.frag");
 
-    unsigned int skyboxTexture = loadTexture("../../shaders/starss.jpg");
+    unsigned int skyboxTexture = loadTexture("../../shaders/starfield_original.jpg");
     if (skyboxTexture == 0) return -1; // Fail if image didn't load
 
     // 5. Setup the Full-Screen Quad Geometry

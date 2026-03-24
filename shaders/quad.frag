@@ -11,7 +11,7 @@ uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
 const float dL = 0.01;
-const float rs = 0.0;
+const float rs = 0.25;
 const int N_STEPS = 1500;
 
 struct ray {
