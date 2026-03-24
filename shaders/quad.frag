@@ -37,7 +37,7 @@ mat4 cart_to_sph_Jacobian(float r, float theta, float phi){
 ray cart_to_sph(ray R) {
     vec3 p = R.x.yzw;
     float r = length(p);
-    float theta = acos(clamp(p.z/(r+1e-8), -1.0, 1.0)); // Avoid division by zero
+    float theta = acos(clamp(p.z/(r+1e-10), -1.0, 1.0)); // Avoid division by zero
     float phi = atan(p.y, p.x);
     return ray(vec4(R.x.x,r,theta,phi), cart_to_sph_Jacobian(r, theta, phi) * R.u);
 }
@@ -58,19 +58,22 @@ vec4 find_acceleration(ray R){
     float vphi  =R.u[3];
     // TODO
     // Replace all  sin cos with precomputes
-    // replace r-rs with metric component + 1e-8 for diviide by zero shit
+    // replace r-rs with metric component + 1e-10 for diviide by zero shit
+    float sin_theta = sin(theta);
+    float cos_theta = cos(theta);
+    float tan_theta = tan(theta);
 
     // T(r) component(radial component)
     float Tr_tt = rs * (r-rs)/(2.0*r*r*r); 
     float Tr_rr = -rs/(2.0*r*(r-rs));
     float Tr_thth = -(r-rs);
-    float Tr_phph = -(r-rs)*sin(theta)*sin(theta);
+    float Tr_phph = -(r-rs)*sin_theta*sin_theta;
     //polar component
     float Tth_rth = 1.0/r;
-    float Tth_phph = -sin(theta)*cos(theta);
+    float Tth_phph = -sin_theta*cos_theta;
     //azimuthal component 
     float Tph_rph = 1.0/r;
-    float Tph_thph = 1.0/(tan(theta) + 1e-8);
+    float Tph_thph = 1.0/(tan_theta + 1e-10);
     //Time-component
     float Tt_tr = rs/(2*r*(r-rs)); 
     // T(t) component(accelerationequations)
