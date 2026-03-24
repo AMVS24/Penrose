@@ -15,6 +15,7 @@
 #include "render/Camera.h"
 #include "render/Texture.h"
 #include "render/Renderer.h"
+#include "render/Particle.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -59,6 +60,51 @@ int main() {
 
     // 5. Setup the Full-Screen Quad Geometry
     Renderer renderer; // The constructor silently builds the VAO/VBO here!
+
+    // Create some test particles
+    std::vector<Particle> particles;
+    Particle p1;
+    p1.stateX = glm::vec4(0.0f, 0.5f, 1.0f, 0.0f);  // time=0, r=2, theta=PI/2, phi=0
+    p1.stateU = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    p1.color = glm::vec3(1.0f, 0.0f, 0.0f);  // Red
+    p1.mass = 1.0f;
+    p1.radius = 0.2f;
+    particles.push_back(p1);
+
+    Particle p2;
+    p2.stateX = glm::vec4(0.0f, 0.5f, 1.5f, 0.0f);  // time=0, r=2, theta=PI/2, phi=0
+    p2.stateU = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    p2.color = glm::vec3(0.0f, 1.0f, 0.0f);  // Green
+    p2.mass = 1.0f;
+    p2.radius = 0.2f;
+    particles.push_back(p2);
+    
+    Particle p3;
+    p3.stateX = glm::vec4(0.0f, 0.5f, 2.0f, 0.0f);  // time=0, r=2, theta=PI/2, phi=0
+    p3.stateU = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    p3.color = glm::vec3(0.0f, 1.0f, 0.0f);  // Green
+    p3.mass = 1.0f;
+    p3.radius = 0.2f;
+    particles.push_back(p3);
+    
+    Particle p4;
+    p4.stateX = glm::vec4(0.0f, 0.5f, 2.5f, 0.0f);  // time=0, r=2, theta=PI/2, phi=0
+    p4.stateU = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    p4.color = glm::vec3(0.0f, 1.0f, 0.0f);  // Green
+    p4.mass = 1.0f;
+    p4.radius = 0.1f;
+    particles.push_back(p4);
+    
+    Particle p5;
+    p5.stateX = glm::vec4(0.0f, 0.5f, 3.0f, 0.0f);  // time=0, r=2, theta=PI/2, phi=0
+    p5.stateU = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    p5.color = glm::vec3(0.0f, 1.0f, 0.0f);  // Green
+    p5.mass = 1.0f;
+    p5.radius = 0.1f;
+    particles.push_back(p5);
+
+    // Upload to renderer
+    renderer.updateParticles(particles);
     
     shader.use();
     shader.setInt("skybox", 0);
@@ -77,6 +123,10 @@ int main() {
         // --- CLEAR SCREEN ---
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // --- UPDATE ---
+        // Update particle data if needed
+        renderer.updateParticles(particles);
 
         // --- DRAW Fn ---
         renderer.draw(shader, window, camera, skyboxTexture, currentFrame);

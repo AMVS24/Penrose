@@ -11,13 +11,27 @@ uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 
 const float PI = 3.14159265359;
 const float dL = 0.01;
-const float rs = 0.25;
-const int N_STEPS = 1500;
+const float rs = 0.1;
+const int N_STEPS = 500;
 
 struct ray {
     vec4 x;
     vec4 u;
 };
+
+struct particle {
+    vec4 x;
+    vec4 u;
+    vec3 color;
+    float m;
+    float r;
+};
+
+layout(std430, binding = 0) readonly buffer ParticleBuffer {
+    particle particles[];
+};
+
+uniform int uParticleCount;
 
 mat4 sph_to_cart_Jacobian(float r, float theta, float phi){ 
     return mat4(
@@ -109,6 +123,34 @@ vec2 DirectionToUV(vec3 dir) {
     return vec2(u, v);
 }
 
+// Check if a ray hits a particle
+bool rayParticleHit(ray R, particle p, out float dist) {
+    // Extract particle position from stateX (spherical coords -> cartesian)
+    // float r = p.x.y;
+    // float theta = p.x.z;
+    // float phi = p.x.w;
+    
+    // vec3 particlePos = vec3(
+    //     r * sin(theta) * cos(phi),
+    //     r * sin(theta) * sin(phi),
+    //     r * cos(theta)
+    // );
+    vec3 particlePos = p.x.yzw;
+    
+    // Simple sphere intersection
+    vec3 toParticle = particlePos - R.x.yzw;
+    float a = dot(R.u.yzw, R.u.yzw);
+    float b = -2.0 * dot(R.u.yzw, toParticle);
+    float c = dot(toParticle, toParticle) - p.r * p.r;
+    
+    float discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) return false;
+    
+    float t1 = (-b - sqrt(discriminant)) / (2.0 * a);
+    dist = t1 > 0.0 ? t1 : (-b + sqrt(discriminant)) / (2.0 * a);
+    return dist > 0.0;
+}
+
 vec3 raymarch(vec3 ro, vec3 rd) {
     ray R = ray(vec4(0.0, ro), vec4(0.0, rd));
 
@@ -137,6 +179,16 @@ vec3 raymarch(vec3 ro, vec3 rd) {
         if(length(Rp.x[1]) < rs*1.1) { // A simple sphere at (0,0,5) with radius 0.5
             return vec3(0.0, 0.0, 0.0); // Hit the sphere, return red
         }
+       
+        for (int j = 0; j < uParticleCount; j++) {
+            float dist;
+            if (rayParticleHit(Rp, particles[j], dist)) {
+                if (dist < 0.1) {
+                    return particles[j].color; // Return the particle's color if hit
+                }
+            }
+        }
+
         if(Rp.x.y > 20.0) {
             break; 
         }

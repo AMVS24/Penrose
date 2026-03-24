@@ -8,10 +8,12 @@
 
 #include "Shader.h"
 #include "Camera.h"
+#include "ParticleBuffer.h"
 
 class Renderer {
 private:
     unsigned int quadVAO, quadVBO;
+    ParticleBuffer particleBuffer;
 
 public:
     Renderer();
@@ -19,4 +21,6 @@ public:
 
     // draw function called by main
     void draw(Shader& shader, GLFWwindow* window, Camera& camera, unsigned int skyboxTexture, float currentFrame);
+
+    void updateParticles(const std::vector<Particle>& particles);
 };

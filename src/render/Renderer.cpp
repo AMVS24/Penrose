@@ -57,6 +57,10 @@ void Renderer::draw(Shader& shader, GLFWwindow* window, Camera& camera, unsigned
     glm::mat4 invProjView = glm::inverse(projection * view);
     glUniformMatrix4fv(glGetUniformLocation(shader.ID, "uInvProjView"), 1, GL_FALSE, &invProjView[0][0]);
 
+    particleBuffer.bind(0);
+    // Pass particle count to shader
+    shader.setInt("uParticleCount", (int)particleBuffer.getParticleCount());
+
     // Bind the skybox texture to unit 0 before drawing
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, skyboxTexture);
@@ -64,4 +68,8 @@ void Renderer::draw(Shader& shader, GLFWwindow* window, Camera& camera, unsigned
     // Draw the quad
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Renderer::updateParticles(const std::vector<Particle>& particles) {
+    particleBuffer.uploadParticles(particles);
 }
