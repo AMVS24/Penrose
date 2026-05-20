@@ -23,4 +23,7 @@ public:
     void draw(Shader& shader, GLFWwindow* window, Camera& camera, unsigned int skyboxTexture, float currentFrame);
 
     void updateParticles(const std::vector<Particle>& particles);
+    
+    // capture the current framebuffer to a PNG file
+    bool captureFrame(const std::string& filePath, GLFWwindow* window);
 };

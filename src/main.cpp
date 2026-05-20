@@ -16,6 +16,7 @@
 #include "render/Texture.h"
 #include "render/Renderer.h"
 #include "render/Particle.h"
+#include "render/FrameCapture.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -85,6 +86,9 @@ int main() {
     shader.use();
     shader.setInt("skybox", 0);
 
+    // Initialize frame capture
+    FrameCapture frameCapture;
+
     // 6. Main Render Loop
     while (!glfwWindowShouldClose(window)) {
         // --- TIMING MATH ---
@@ -94,7 +98,7 @@ int main() {
 
         // --- PROCESS KEYBOARD INPUT ---
         // uses the global camera and deltaTime(=dt by default)
-        processInput(window, camera);
+        processInput(window, camera, frameCapture);
 
         // --- CLEAR SCREEN ---
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -110,6 +114,12 @@ int main() {
 
         // --- DRAW Fn ---
         renderer.draw(shader, window, camera, skyboxTexture, currentFrame);
+
+        // --- CAPTURE FRAME IF ENABLED ---
+        if (frameCapture.getIsCapturing()) {
+            std::string filePath = frameCapture.getNextFilePath();
+            renderer.captureFrame(filePath, window);
+        }
 
         // --- SWAP BUFFERS ---
         glfwSwapBuffers(window);

@@ -1,4 +1,6 @@
 #include "Renderer.h"
+#include <iostream>
+#include <fstream>
 
 Renderer::Renderer() {
     // 5. Setup the Full-Screen Quad Geometry
@@ -72,4 +74,42 @@ void Renderer::draw(Shader& shader, GLFWwindow* window, Camera& camera, unsigned
 
 void Renderer::updateParticles(const std::vector<Particle>& particles) {
     particleBuffer.uploadParticles(particles);
+}
+
+bool Renderer::captureFrame(const std::string& filePath, GLFWwindow* window) {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    
+    // Allocate buffer for pixel data (RGB format)
+    unsigned char* pixels = new unsigned char[width * height * 3];
+    
+    // Read pixels from framebuffer
+    glReadBuffer(GL_FRONT);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    
+    // Open file for writing in binary mode
+    std::ofstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filePath << std::endl;
+        delete[] pixels;
+        return false;
+    }
+    
+    // Write PPM header
+    file << "P6\n";
+    file << width << " " << height << "\n";
+    file << "255\n";
+    
+    // Write pixel data (flip vertically because OpenGL reads from bottom-left)
+    for (int y = height - 1; y >= 0; --y) {
+        for (int x = 0; x < width; ++x) {
+            int idx = (y * width + x) * 3;
+            file.write((const char*)(pixels + idx), 3);
+        }
+    }
+    
+    file.close();
+    delete[] pixels;
+    
+    return true;
 }
