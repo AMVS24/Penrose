@@ -12,7 +12,7 @@ uniform mat4 uInvProjView;      // The inverse View-Projection matrix
 const float PI = 3.14159265359;
 const float dL = 0.01;
 const float rs = 0.25;
-const int N_STEPS = 1000;
+const int N_STEPS = 3000;
 
 struct ray {
     vec4 x;
@@ -64,8 +64,10 @@ ray sph_to_cart(ray R) {
 }
 
 vec4 find_acceleration(ray R){
-    float r = R.x[1];
-    float theta = clamp(R.x[2], 1e-10, PI - 1e-10);
+    // Clamp r to be strictly greater than rs to avoid divide-by-zero and sign flips 
+    // when RK4 intermediate steps probe inside the horizon.
+    float r = max(R.x[1], rs * 1.05);
+    float theta = clamp(R.x[2], 1e-5, PI - 1e-5);
 
     float vt    =R.u[0];
     float vr    =R.u[1];
@@ -76,7 +78,6 @@ vec4 find_acceleration(ray R){
     // replace r-rs with metric component + 1e-10 for diviide by zero shit
     float sin_theta = sin(theta);
     float cos_theta = cos(theta);
-    float tan_theta = tan(theta);
 
     // T(r) component(radial component)
     float Tr_tt = rs * (r-rs)/(2.0*r*r*r); 
@@ -88,7 +89,7 @@ vec4 find_acceleration(ray R){
     float Tth_phph = -sin_theta*cos_theta;
     //azimuthal component 
     float Tph_rph = 1.0/r;
-    float Tph_thph = 1.0/(tan_theta);
+    float Tph_thph = cos_theta / (sin_theta + 1e-5);
     //Time-component
     float Tt_tr = rs/(2*r*(r-rs)); 
     // T(t) component(accelerationequations)
@@ -105,13 +106,13 @@ ray create_ray_derivative(ray R){
     return res;
 }
 
-ray integrate(ray R){
+ray integrate(ray R, float step_size){
     ray k1 = create_ray_derivative(R);    
-    ray k2 = create_ray_derivative(ray(R.x + (k1.x * (dL/2.0)),R.u + (k1.u * (dL/2.0))));
-    ray k3 = create_ray_derivative(ray(R.x + (k2.x * (dL/2.0)),R.u + (k2.u * (dL/2.0))));
-    ray k4 = create_ray_derivative(ray(R.x + (k3.x * dL),R.u + (k3.u * dL)));
+    ray k2 = create_ray_derivative(ray(R.x + (k1.x * (step_size/2.0)),R.u + (k1.u * (step_size/2.0))));
+    ray k3 = create_ray_derivative(ray(R.x + (k2.x * (step_size/2.0)),R.u + (k2.u * (step_size/2.0))));
+    ray k4 = create_ray_derivative(ray(R.x + (k3.x * step_size),R.u + (k3.u * step_size)));
 
-    ray s_final = ray(R.x + (dL/6.0 )*(k1.x + 2.0*k2.x + 2.0*k3.x + k4.x),R.u + (dL/6.0 )*(k1.u + 2.0*k2.u + 2.0*k3.u + k4.u));
+    ray s_final = ray(R.x + (step_size/6.0 )*(k1.x + 2.0*k2.x + 2.0*k3.x + k4.x),R.u + (step_size/6.0 )*(k1.u + 2.0*k2.u + 2.0*k3.u + k4.u));
 
     return s_final;    
 }
@@ -179,10 +180,18 @@ vec3 raymarch(vec3 ro, vec3 rd) {
             }
         }
 
-        if(Rp.x.y > 20.0) {
+        if(Rp.x.y > 10.0) {
             break; 
         }
-        ray der = integrate(Rp);
+        
+        float step_size = dL;
+        if (Rp.x.y < 1.0) {
+            step_size = dL * 0.1;
+        } else if (Rp.x.y < 2.0) {
+            step_size = dL * 0.5;
+        }
+
+        ray der = integrate(Rp, step_size);
         Rp.u = der.u;
         Rp.x = der.x;
 
@@ -197,10 +206,17 @@ vec3 raymarch(vec3 ro, vec3 rd) {
             Rp.u.z = -Rp.u.z;           // Reverse theta velocity
         }
     }
+
+    if (Rp.x.y <= 10.0) {
+        // Ray exhausted N_STEPS without escaping or hitting the event horizon.
+        // It's likely trapped in the photon sphere. Return black.
+        return vec3(0.0);
+    }
+
     R = sph_to_cart(Rp);
 
     vec2 skyUV = DirectionToUV(normalize(R.u.yzw));
-    return texture(skybox, skyUV).rgb; // Return black for now
+    return texture(skybox, skyUV).rgb;
     // return vec3(skyUV,1.0).rgb; // Return black for now
 }
 
